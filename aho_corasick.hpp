@@ -2,6 +2,8 @@
 #ifndef AHO_CORASICK_HPP
 #define AHO_CORASICK_HPP
 
+#include <iostream>
+
 #include <algorithm>
 #include <map>
 #include <memory>
@@ -236,6 +238,7 @@ namespace aho_corasick
 
 	private:
 		string_type	m_keyword;
+		int 		m_health;
 		unsigned 	m_index = 0;
 
 	public:
@@ -243,12 +246,16 @@ namespace aho_corasick
 			interval(-1, 1),
 			m_keyword() {}
 
-		emit(size_t start, size_t end, string_type keyword, unsigned index):
+		emit(size_t start, size_t end, string_type keyword, unsigned index, int health):
 			interval(start, end),
-			m_keyword(keyword), m_index(index) {}
+			m_keyword(keyword), m_health(health), m_index(index) {}
 
 		inline string_type get_keyword() const
 			{ return string_type(m_keyword); }
+		inline int get_health() const
+			{ return m_health; }
+		inline void add_health(int val)
+			{ m_health += val; }
 		inline unsigned get_index() const
 			{ return m_index; }
 		bool is_empty() const
@@ -292,16 +299,63 @@ namespace aho_corasick
 		inline emit_type get_emit() const { return m_emit; }
 	}; // end class token
 
+	// struct triple
+	template<class T1, class T2, class T3>
+	struct triple{
+		triple():
+			triple(T1(), T2(), T3()) {}
+		triple(T1 t1, T2 t2, T3 t3):
+			first(t1), second(t2), third(t3) {}
+		T1 first;
+		T2 second;
+		T3 third;
+	}; // end struct triple
+
+	template<class T1, class T2, class T3>
+	bool operator==(const triple<T1, T2, T3>& lhs, const triple<T1, T2, T3>& rhs)
+		{ return lhs.first == rhs.first && lhs.second == rhs.second && lhs.third == rhs.third; }
+	template<class T1, class T2, class T3>
+	bool operator!=(const triple<T1, T2, T3>& lhs, const triple<T1, T2, T3>& rhs)
+		{ return lhs.first != rhs.first || lhs.second != rhs.second || lhs.third != rhs.third; }
+	template<class T1, class T2, class T3>
+	bool operator<(const triple<T1, T2, T3>& lhs, const triple<T1, T2, T3>& rhs)
+	{
+		if(lhs.first < rhs.first)
+			if(lhs.second < rhs.second)
+				if(lhs.third < rhs.third)
+					return true;
+		return false;
+	}
+	template<class T1, class T2, class T3>
+	bool operator<=(const triple<T1, T2, T3>& lhs, const triple<T1, T2, T3>& rhs)
+		{ return lhs < rhs || lhs == rhs; }
+	template<class T1, class T2, class T3>
+	bool operator>(const triple<T1, T2, T3>& lhs, const triple<T1, T2, T3>& rhs)
+	{
+		if(lhs.first > rhs.first)
+			if(lhs.second > rhs.second)
+				if(lhs.third > rhs.third)
+					return true;
+		return false;
+	}
+	template<class T1, class T2, class T3>
+	bool operator>=(const triple<T1, T2, T3>& lhs, const triple<T1, T2, T3>& rhs)
+		{ return lhs > rhs || lhs == rhs; }
+
+	template<class T1, class T2, class T3>
+	triple<T1, T2, T3> make_triple(T1 t1, T2 t2, T3 t3)
+	{ return triple<T1, T2, T3>(t1, t2, t3); }
+
 	// class state
 	template<typename charType>
 	class state
 	{
 	public:
 		typedef state<charType>*					ptr;
-		typedef std::unique_ptr<state<charType> > 	unique_ptr;
+		typedef std::unique_ptr<state<charType> >	unique_ptr;
 		typedef std::basic_string<charType>			string_type;
 		typedef std::basic_string<charType>&		string_ref_type;
-		typedef std::pair<string_type, unsigned>	key_index;
+		typedef triple<string_type, unsigned, int>	key_index;
 		typedef std::set<key_index>					string_collection;
 		typedef std::vector<ptr>					state_collection;
 		typedef std::vector<charType>				transition_collection;
@@ -346,14 +400,14 @@ namespace aho_corasick
 		inline size_t get_depth() const { return m_depth; }
 
 		// adds single key index pair
-		void add_emit(string_ref_type keyword, unsigned index) {
-			m_emits.insert(std::make_pair(keyword, index));
+		void add_emit(string_ref_type keyword, unsigned index, int health) {
+			m_emits.insert(make_triple(keyword, index, health));
 		}
 		// adds all key indexe pairs from set
 		void add_emit(const string_collection& emits) {
 			for(const auto& e : emits) {
 				string_type str(e.first);
-				add_emit(str, e.second);
+				add_emit(str, e.second, e.third);
 			}
 		}
 		// return key index pair set
@@ -460,14 +514,14 @@ namespace aho_corasick
 			return (*this); }
 
 		// insert string object
-		void insert(string_type keyword) {
+		void insert(string_type keyword, int health) {
 			if(keyword.empty())
 				return;
 			state_ptr_type cur_state = m_root.get();
 			for(const auto& ch : keyword) {
 				cur_state = cur_state->add_state(ch);
 			}
-			cur_state->add_emit(keyword, m_num_keywords++);
+			cur_state->add_emit(keyword, m_num_keywords++, health);
 		}
 
 		// insert using iterators
@@ -600,7 +654,7 @@ namespace aho_corasick
 			if(!emits.empty()) {
 				for(const auto& str : emits) {
 					auto emit_str = typename emit_type::string_type(str.first);
-					collected_emits.push_back(emit_type(pos - emit_str.size() + 1, pos, emit_str, str.second));
+					collected_emits.push_back(emit_type(pos - emit_str.size() + 1, pos, emit_str, str.second, str.third));
 				}
 			}
 		}
