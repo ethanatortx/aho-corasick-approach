@@ -21,8 +21,8 @@ namespace aho_corasick
 		constexpr interval(size_t start, size_t end)
 			: m_start(start), m_end(end) {}
 
-		inline size_t getm_start() const { return m_start; }
-		inline size_t getm_end() const { return m_end; }
+		inline size_t get_start() const { return m_start; }
+		inline size_t get_end() const { return m_end; }
 		size_t range() const { return m_end - m_start + 1; }
 
 		bool overlaps_with(const interval& other) const
