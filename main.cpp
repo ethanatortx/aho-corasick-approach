@@ -1,41 +1,14 @@
 #include <iostream>
 #include "aho_corasick.hpp"
 
-namespace ac = aho_corasick;
-
 int main()
 {
-	
-	int n, i, k, p, q;
-	std::string t;
-	std::cin >> n;
-	std::vector<std::string> svec;
-	std::vector<int> health;
+	std::vector<std::string> svec = { "he", "she", "his", "he", "hers" };
+	std::vector<int> health = { 1, 2, 3, 4, 5 };
 
-	for(i = 0; i < n; ++i)
-	{
-		std::cin >> t;
-		svec.push_back(t);
-	}
-	for(i = 0; i < n; ++i)
-	{
-		std::cin >> p;
-		health.push_back(p);
-	}
+	auto t = aho_corasick::trie(svec, health);
 
-	std::cin >> k;
-	for(i = 0; i < k; ++i)
-	{
-		std::cin>>p>>q;
-		ac::trie actree;
-		for(; p < (q+1); ++p)
-			actree.insert(svec[p]);
-		std::string s;
-		std::cin >> s;
-		auto em_col = actree.parse_text(s);
-		for(const auto& e : em_col)
-			std::cout << e.get_keyword() << ' ';
-		std::cout << '\n';
-	}
+	std::cout << t.check("hehe");
+
 	return 0;
 }
